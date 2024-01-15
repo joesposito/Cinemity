@@ -45,8 +45,8 @@ def get_child_value(parent_div, child_tag):
 
 @app.route("/current-movies/<region>/<postal_code>", methods=['GET'])
 def currently_playing(region, postal_code):
-    print(url + "/" + region + "/" + postal_code)
-    data_list = scrape_movies(url + "/" + region + "/" + postal_code)
+    print(movies_url + "/" + region + "/" + postal_code)
+    data_list = scrape_movies(movies_url + "/" + region + "/" + postal_code)
     return json.dumps(data_list, indent=4)
 
 if __name__ == "__main__":
