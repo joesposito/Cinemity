@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask
 import json
 import requests
 from bs4 import BeautifulSoup
