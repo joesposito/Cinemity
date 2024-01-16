@@ -21,7 +21,7 @@ def local_theaters(region, postal_code):
     data_list = scrape_theaters(imdb_url + "/" + region + "/" + postal_code)
     return json.dumps(data_list, indent=4)
 
-#returns list of movies playing given a cinema id
+# returns list of movies playing given a cinema id
 @app.route("/<region>/<postal_code>/<cinema_id>", methods=['GET'])
 def get_showtimes(region, postal_code, cinema_id):
     data_list = scrape_showtimes(imdb_url + "/" + region + "/" + postal_code, cinema_id)
