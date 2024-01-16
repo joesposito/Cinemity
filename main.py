@@ -5,34 +5,44 @@ import requests
 
 
 app = Flask(__name__)
-imdb_url = "https://www.imdb.com/showtimes"
+imdb_url = 'https://www.imdb.com/showtimes'
 
 
 # returns list of movies playing locally
-@app.route("/currently-playing/<region>/<postal_code>", methods=['GET'])
+@app.route('/currently-playing/<region>/<postal_code>', methods=['GET'])
 def currently_playing(region, postal_code):
-    data_list = scrape_movies(imdb_url + "/" + region + "/" + postal_code)
-    return json.dumps(data_list, indent=4)
+    try:
+        data_list = scrape_movies(imdb_url + '/' + region + '/' + postal_code)
+        return json.dumps(data_list, indent=4)
+    except Exception as e:
+        return json.dumps({'error': str(e)})
 
 
 # returns list of local movie theaters
-@app.route("/theaters-nearby/<region>/<postal_code>", methods=['GET'])
+@app.route('/theaters-nearby/<region>/<postal_code>', methods=['GET'])
 def local_theaters(region, postal_code):
-    data_list = scrape_theaters(imdb_url + "/" + region + "/" + postal_code)
-    return json.dumps(data_list, indent=4)
+    try:
+        data_list = scrape_theaters(imdb_url + '/' + region + '/' + postal_code)
+        return json.dumps(data_list, indent=4)
+    except Exception as e:
+        return json.dumps({'error': str(e)})
+
 
 # returns list of movies playing given a cinema id
-@app.route("/<region>/<postal_code>/<cinema_id>", methods=['GET'])
+@app.route('/<region>/<postal_code>/<cinema_id>', methods=['GET'])
 def get_showtimes(region, postal_code, cinema_id):
-    data_list = scrape_showtimes(imdb_url + "/" + region + "/" + postal_code, cinema_id)
-    return json.dumps(data_list, indent=4)
+    try:
+        data_list = scrape_showtimes(imdb_url + '/' + region + '/' + postal_code, cinema_id)
+        return json.dumps(data_list, indent=4)
+    except Exception as e:
+        return json.dumps({'error': str(e)})
 
 
 def scrape_movies(url):
     response = requests.get(url)
 
     if response.status_code != 200:
-        raise Exception("Error, status code: " + response.status_code)
+        raise Exception('Error, status code: ' + response.status_code)
 
     soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -46,17 +56,17 @@ def scrape_movies(url):
         for movie_div in movie_divs:
             movie_info = get_movie_info(movie_div, False)
 
+            # no duplicates allowed in this list
             if not any(movie.get('title') == movie_info.get('title') for movie in movies_list):
                 movies_list.append(movie_info)
 
-    return movies_list
-
+        return movies_list
 
 def scrape_theaters(url):
     response = requests.get(url)
 
     if response.status_code != 200:
-        raise Exception("Error, status code: " + response.status_code)
+        raise Exception('Error, status code: ' + response.status_code)
 
     soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -73,14 +83,16 @@ def scrape_showtimes(url, cinema_id):
     response = requests.get(url)
 
     if response.status_code != 200:
-        raise Exception("Error, status code: " + response.status_code)
+        raise Exception('Error, status code: ' + response.status_code)
 
     soup = BeautifulSoup(response.text, 'html.parser')
 
     theaters = soup.find_all('div', {'class': ['list_item odd', 'list_item even']})
     movies_info = []
     theater_name = 'n/a'
+
     for theater in theaters:
+        # find the specific theater div with the corresponding cinema id
         theater_div = theater.find('a', {'data-cinemaid': cinema_id})
         if theater_div:
             theater_name_parent = theater.find('h3', {'itemprop': 'name'})
@@ -104,7 +116,7 @@ def get_child_value(parent_tag, child_tag):
     try:
         return parent_tag.find(*child_tag).text
     except AttributeError:
-        return "n/a"
+        return 'n/a'
 
 
 def get_value(tag, attribute):
@@ -159,6 +171,7 @@ def get_movie_info(movie_div, include_showtimes):
         showtimes_divs = movie_div.find_all('a', {'class': 'tracked-offsite-link'})
         showtimes = []
 
+        # movie times have line breaks we'd like to strip away
         for show in showtimes_divs:
             if show is not None:
                 showtimes.append(show.text.strip())
@@ -168,5 +181,5 @@ def get_movie_info(movie_div, include_showtimes):
     return movies
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(port=7777)
