@@ -37,7 +37,7 @@ def get_showtimes(region, postal_code, cinema_id):
     except Exception as e:
         return json.dumps({'error': str(e)})
 
-
+# scrapes the movies
 def scrape_movies(url):
     response = requests.get(url)
 
@@ -50,6 +50,7 @@ def scrape_movies(url):
     theater_divs = soup.find_all('div', {'class': ['list_item odd', 'list_item even']})
     movies_list = []
 
+    # iterate through html structure to get the movie info
     for theater_div in theater_divs:
         movie_divs = theater_div.find_all('div', {'class': 'list_item'})
 
@@ -62,6 +63,7 @@ def scrape_movies(url):
 
         return movies_list
 
+# scrapes the theaters
 def scrape_theaters(url):
     response = requests.get(url)
 
@@ -73,12 +75,14 @@ def scrape_theaters(url):
     theaters = soup.find_all('div', {'class': ['list_item odd', 'list_item even']})
     theater_list = []
 
+    # get the info for every theater then add it to our list
     for theater in theaters:
         theater_info = get_theater_info(theater)
         theater_list.append(theater_info)
 
     return theater_list
 
+# scrapes the showtimes
 def scrape_showtimes(url, cinema_id):
     response = requests.get(url)
 
@@ -87,9 +91,11 @@ def scrape_showtimes(url, cinema_id):
 
     soup = BeautifulSoup(response.text, 'html.parser')
 
+    # The divs containing theater information are labeled odd and even
     theaters = soup.find_all('div', {'class': ['list_item odd', 'list_item even']})
     movies_info = []
     theater_name = 'n/a'
+
 
     for theater in theaters:
         # find the specific theater div with the corresponding cinema id
@@ -99,6 +105,7 @@ def scrape_showtimes(url, cinema_id):
             theater_name = get_child_value(theater_name_parent, ('a', {'itemprop': 'url'}))
             movie_divs = theater.find_all('div', {'class': 'list_item'})
 
+            # then get every movie in the movie divs inside of this specific theater
             for movie_div in movie_divs:
                 movie_info = get_movie_info(movie_div, True)
                 movies_info.append(movie_info)
@@ -106,19 +113,20 @@ def scrape_showtimes(url, cinema_id):
     movies = []
     showtimes = {'theater-name': theater_name, 'movies': movies}
 
+    # finally add it to our list
     for movie in movies_info:
         showtimes.get('movies').append(movie)
 
     return showtimes
 
-
+# useful method for getting the child value of a parent tag if it exists
 def get_child_value(parent_tag, child_tag):
     try:
         return parent_tag.find(*child_tag).text
     except AttributeError:
         return 'n/a'
 
-
+# gets the value a tag given an attribute
 def get_value(tag, attribute):
     try:
         result = tag.find(attribute).text
@@ -126,18 +134,21 @@ def get_value(tag, attribute):
     except AttributeError:
         return 'n/a'
 
-
+# helper method to parse the theater html
 def get_theater_info(theater_div):
     theater_name_parent = theater_div.find('h3', {'itemprop': 'name'})
     theater_name = get_child_value(theater_name_parent, ('a', {'itemprop': 'url'}))
     cinema_id = theater_name_parent.find('a', {'data-cinemaid': True}).get('data-cinemaid')
 
+    # gets hearing accessibility info
     hearing_accessibility = theater_div.find('li', {'title': 'Hearing Devices Available'})
     has_hearing_accessibility = hearing_accessibility is not None
 
+    # gets wheelchair accessibility info
     wheelchair_accessibility = theater_div.find('li', {'title': 'Wheelchair Accessible'})
     has_wheelchair_accessibility = wheelchair_accessibility is not None
 
+    # gets local theater information
     street_address = get_child_value(theater_div, ('span', {'itemprop': 'streetAddress'}))
     address_locality = get_child_value(theater_div, ('span', {'itemprop': 'addressLocality'}))
     address_region = get_child_value(theater_div, ('span', {'itemprop': 'addressRegion'}))
@@ -150,11 +161,12 @@ def get_theater_info(theater_div):
 
     return theaters
 
-
+# helper method for getting movie info
 def get_movie_info(movie_div, include_showtimes):
     title = get_child_value(movie_div, ('a', {'title': True}))
 
     user_rating = get_value(movie_div, ('strong', {'itemprop': 'ratingValue'}))
+    # if it's a valid rating we can put it out of 10
     if user_rating != 'n/a':
         user_rating += '/10'
 
